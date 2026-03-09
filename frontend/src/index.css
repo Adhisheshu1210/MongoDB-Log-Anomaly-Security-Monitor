@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cyber-dark: #0a0e17;
+  --cyber-darker: #05080f;
+  --cyber-card: #111827;
+  --cyber-border: #1f2937;
+  --cyber-accent: #00ff88;
+  --cyber-danger: #ff3366;
+  --cyber-warning: #ffaa00;
+  --cyber-success: #00cc66;
+  --cyber-info: #00aaff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--cyber-dark);
+  color: #e5e7eb;
+  min-height: 100vh;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--cyber-darker);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--cyber-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--cyber-accent), 0 0 10px var(--cyber-accent);
+  }
+  50% {
+    box-shadow: 0 0 10px var(--cyber-accent), 0 0 20px var(--cyber-accent);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Card styles */
+.card {
+  @apply bg-cyber-card border border-cyber-border rounded-lg;
+}
+
+.card-hover {
+  @apply transition-all duration-200 hover:border-cyber-accent hover:shadow-lg hover:shadow-cyber-accent/10;
+}
+
+/* Button styles */
+.btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+}
+
+.btn-primary {
+  @apply bg-cyber-accent text-cyber-darker hover:bg-opacity-90;
+}
+
+.btn-danger {
+  @apply bg-cyber-danger text-white hover:bg-opacity-90;
+}
+
+.btn-outline {
+  @apply border border-cyber-border text-gray-300 hover:border-cyber-accent hover:text-cyber-accent;
+}
+
+/* Badge styles */
+.badge {
+  @apply px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.badge-critical {
+  @apply bg-red-500/20 text-red-400 border border-red-500/30;
+}
+
+.badge-high {
+  @apply bg-orange-500/20 text-orange-400 border border-orange-500/30;
+}
+
+.badge-medium {
+  @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/30;
+}
+
+.badge-low {
+  @apply bg-blue-500/20 text-blue-400 border border-blue-500/30;
+}
+
+.badge-info {
+  @apply bg-gray-500/20 text-gray-400 border border-gray-500/30;
+}
+
+/* Log level colors */
+.log-fatal {
+  @apply text-red-600;
+}
+
+.log-error {
+  @apply text-red-400;
+}
+
+.log-warning {
+  @apply text-yellow-400;
+}
+
+.log-info {
+  @apply text-blue-400;
+}
+
+.log-debug {
+  @apply text-gray-400;
+}
+
+.log-trace {
+  @apply text-gray-500;
+}
+
+/* Table styles */
+.table-container {
+  @apply overflow-x-auto;
+}
+
+table {
+  @apply w-full;
+}
+
+th {
+  @apply text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3 bg-cyber-darker;
+}
+
+td {
+  @apply px-4 py-3 text-sm border-b border-cyber-border;
+}
+
+tr:hover {
+  @apply bg-cyber-border/30;
+}
+
+/* Form styles */
+.input {
+  @apply w-full px-4 py-2 bg-cyber-darker border border-cyber-border rounded-lg text-gray-200 placeholder-gray-500 focus:outline-none focus:border-cyber-accent focus:ring-1 focus:ring-cyber-accent;
+}
+
+.select {
+  @apply w-full px-4 py-2 bg-cyber-darker border border-cyber-border rounded-lg text-gray-200 focus:outline-none focus:border-cyber-accent focus:ring-1 focus:ring-cyber-accent;
+}
+
+/* Severity indicator */
+.severity-indicator {
+  @apply w-2 h-2 rounded-full;
+}
+
+.severity-critical {
+  @apply bg-red-500 animate-pulse;
+}
+
+.severity-high {
+  @apply bg-orange-500;
+}
+
+.severity-medium {
+  @apply bg-yellow-500;
+}
+
+.severity-low {
+  @apply bg-blue-500;
+}
+
+.severity-info {
+  @apply bg-gray-500;
+}
+

@@ -1,0 +1,54 @@
+2024-01-15T10:00:01.123+0000 I NETWORK  [initandlisten] waiting for connections on port 27017
+2024-01-15T10:00:02.456+0000 I ACCESS   [conn1] Authentication succeeded for user admin@admin from 127.0.0.1
+2024-01-15T10:00:05.789+0000 I COMMAND  [conn2] command test.users appName: "MongoDB Shell" command: find { find: "users", filter: {}, lsid: {id: "abc123"}, $db: "test" } protocol: op_msg 5423ms
+2024-01-15T10:00:10.012+0000 E STORAGE  [conn3] WiredTiger error (0) [1705317610:12]: __wt_txn_visible: txn timestamp has moved forward
+2024-01-15T10:00:15.345+0000 I ACCESS   [conn4] Authentication failed for user test@admin from 192.168.1.100
+2024-01-15T10:00:20.678+0000 I REPL     [replication] OplogViewer 5% scanned
+2024-01-15T10:00:25.901+0000 W NETWORK  [conn5] socket exception (connection spike detected: 150 connections)
+2024-01-15T10:00:30.234+0000 I QUERY    [conn6] query test.orders planSummary: COLLSCAN documentsExamined:100000 documentsReturned:1000 duration:2341ms
+2024-01-15T10:00:35.567+0000 E ACCESS   [conn7] Unauthorized: not authorized on admin to execute command { replSetGetStatus: 1 }
+2024-01-15T10:00:40.890+0000 I STORAGE  [initandlisten] WiredTiger 3.2.1: starting up
+2024-01-15T10:00:45.123+0000 I COMMAND  [conn8] command: insert { insert: "logs", documents: 1000 } duration: 45ms
+2024-01-15T10:00:50.456+0000 W STORAGE  [conn9] Checkpoint took 1234ms (background job)
+2024-01-15T10:00:55.789+0000 I NETWORK  [conn10] new client connection from 192.168.1.50:54321
+2024-01-15T10:01:00.012+0000 I INDEX    [conn11] building index test.users on field email { unique: true }
+2024-01-15T10:01:05.345+0000 E NETWORK  [conn12] SocketException: couldn't connect to server 192.168.1.100:27017
+2024-01-15T10:01:10.678+0000 I ACCESS   [conn13] Authentication failed for user root from 10.0.0.50
+2024-01-15T10:01:15.901+0000 I COMMAND  [conn14] command: update { update: "sessions", updates: 1 } duration: 156ms
+2024-01-15T10:01:20.234+0000 W QUERY    [conn15] Slow query: find { status: "active" } took 3456ms
+2024-01-15T10:01:25.567+0000 I FTDC     [ftdc] Collected 100 samples in 5s
+2024-01-15T10:01:30.890+0000 E STORAGE  [conn16] Out of memory: cannot allocate 2GB
+2024-01-15T10:01:35.123+0000 I REPL     [replication] Replica set primary: mongo-primary:27017
+2024-01-15T10:01:40.456+0000 W ACCESS   [conn17] Attempted unauthorized access to database: financials
+2024-01-15T10:01:45.789+0000 I WRITE    [conn18] update test.products updated: 50 documents in 234ms
+2024-01-15T10:01:50.012+0000 E REPL     [replication] Sync source error: connection refused
+2024-01-15T10:01:55.345+0000 I NETWORK  [conn19] Connection accepted from 192.168.1.101:54321 #101
+2024-01-15T10:02:00.678+0000 I QUERY    [conn20] query test.transactions planSummary: IXSCAN { userId: 1 } docsExamined: 500 docsReturned: 10 duration: 45ms
+2024-01-15T10:02:05.901+0000 W STORAGE  [conn21] Disk space warning: 90% used
+2024-01-15T10:02:10.234+0000 I ACCESS   [conn22] getLog: not authorized on admin to execute command { getLog: "startupWarnings" }
+2024-01-15T10:02:15.567+0000 E COMMAND  [conn23] Command failed: not master
+2024-01-15T10:02:20.890+0000 I STORAGE  [conn24] Creating collection test.audit_logs
+2024-01-15T10:02:25.123+0000 W NETWORK  [conn25] Too many open connections: 500 (max: 500)
+2024-01-15T10:02:30.456+0000 I ACCESS   [conn26] Authenticate succeeded for user service@admin from 10.0.0.10
+2024-01-15T10:02:35.789+0000 E QUERY    [conn27] PlanExecutor error during query execution
+2024-01-15T10:02:40.012+0000 I REPL     [replication] Starting rollback: took 15s
+2024-01-15T10:02:45.345+0000 I WRITE    [conn28] remove test.cache cleared: 10000 documents
+2024-01-15T10:02:50.678+0000 W STORAGE  [conn29] Checkpoint delayed: still processing 500 operations
+2024-01-15T10:02:55.901+0000 E ACCESS   [conn30] Password verification failed for user developer
+2024-01-15T10:03:00.234+0000 I COMMAND  [conn31] command: count { count: "users", query: { active: true } } duration: 123ms
+2024-01-15T10:03:05.567+0000 I INDEX    [conn32] Index built: test.orders.{ orderDate: -1 }
+2024-01-15T10:03:10.890+0000 W QUERY    [conn33] Collection scan for large dataset: test.logs
+2024-01-15T10:03:15.123+0000 E STORAGE  [conn34] Journal write failure
+2024-01-15T10:03:20.456+0000 I ACCESS   [conn35] SCRAM-SHA-1 authentication succeeded for user analyst
+2024-01-15T10:03:25.789+0000 I NETWORK  [conn36] end connection 192.168.1.100:54321
+2024-01-15T10:03:30.012+0000 E REPL     [replication] Error in oplog reader: connection timeout
+2024-01-15T10:03:35.345+0000 I QUERY    [conn37] query test.events planSummary: IDHACK duration: 5ms
+2024-01-15T10:03:40.678+0000 W ACCESS   [conn38] Insufficient permission for operation: drop collection
+2024-01-15T10:03:45.901+0000 I COMMAND  [conn39] command: aggregate { aggregate: "orders", pipeline: [] } duration: 567ms
+2024-01-15T10:03:50.234+0000 E STORAGE  [conn40] Cannot create temporary file: no space left on device
+2024-01-15T10:03:55.567+0000 I WRITE    [conn41] bulk operation completed: 1000 writes in 890ms
+2024-01-15T10:04:00.890+0000 I NETWORK  [conn42] Received interrupt signal: shutting down
+2024-01-15T10:04:05.123+0000 I ACCESS   [conn43] Authentication succeeded for user monitor@admin
+2024-01-15T10:04:10.456+0000 W QUERY    [conn44] Query optimization suggests new index
+2024-01-15T10:04:15.789+0000 E REPL     [replication] Secondary lagging behind primary by 30s
+

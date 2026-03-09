@@ -1,0 +1,31 @@
+{
+  "name": "mongodb-log-monitor",
+  "version": "1.0.0",
+  "description": "MongoDB Log Anomaly & Security Monitor - Real-time AI-powered monitoring platform",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm start",
+    "start:ai": "cd ai-service && python src/main.py",
+    "dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "docker:up": "docker-compose -f docker/docker-compose.yml up -d",
+    "docker:down": "docker-compose -f docker/docker-compose.yml down",
+    "k8s:deploy": "kubectl apply -f kubernetes/"
+  },
+  "keywords": [
+    "mongodb",
+    "log-monitor",
+    "anomaly-detection",
+    "ai",
+    "security",
+    "monitoring",
+    "devops"
+  ],
+  "author": "MongoDB Log Monitor Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+

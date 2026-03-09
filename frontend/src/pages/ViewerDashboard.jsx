@@ -1,0 +1,394 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
+import { statsAPI } from '../services/api';
+import {
+  FileText,
+  AlertTriangle,
+  Bell,
+  Activity,
+  TrendingUp,
+  Clock,
+  RefreshCw,
+  Eye,
+  Lock
+} from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend
+} from 'recharts';
+import toast from 'react-hot-toast';
+
+const COLORS = ['#00ff88', '#ff3366', '#ffaa00', '#00aaff', '#9933ff', '#ff66aa'];
+
+const ViewerDashboard = () => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [logsByLevel, setLogsByLevel] = useState([]);
+  const [logsByTime, setLogsByTime] = useState([]);
+  const [anomaliesByType, setAnomaliesByType] = useState([]);
+  const [recentLogs, setRecentLogs] = useState([]);
+  const [recentAnomalies, setRecentAnomalies] = useState([]);
+  const [activeAlerts, setActiveAlerts] = useState([]);
+  const { socket } = useSocket();
+
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [
+        statsRes,
+        logsByLevelRes,
+        logsByTimeRes,
+        anomaliesByTypeRes
+      ] = await Promise.all([
+        statsAPI.getDashboard(),
+        statsAPI.getLogsByLevel(),
+        statsAPI.getLogsByTime({ limit: 24 }),
+        statsAPI.getAnomaliesByType()
+      ]);
+
+      setStats(statsRes.data.data);
+      setLogsByLevel(logsByLevelRes.data.data);
+      setLogsByTime(logsByTimeRes.data.data);
+      setAnomaliesByType(anomaliesByTypeRes.data.data);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewLog = () => fetchDashboardData();
+    const handleNewAnomaly = () => fetchDashboardData();
+    const handleNewAlert = () => fetchDashboardData();
+
+    socket.on('log:new', handleNewLog);
+    socket.on('anomaly:detected', handleNewAnomaly);
+    socket.on('alert:new', handleNewAlert);
+
+    return () => {
+      socket.off('log:new', handleNewLog);
+      socket.off('anomaly:detected', handleNewAnomaly);
+      socket.off('alert:new', handleNewAlert);
+    };
+  }, [socket, fetchDashboardData]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchDashboardData();
+    setRefreshing(false);
+  };
+
+  const getSeverityClass = (severity) => {
+    const classes = {
+      FATAL: 'log-fatal',
+      ERROR: 'log-error',
+      WARNING: 'log-warning',
+      INFO: 'log-info',
+      DEBUG: 'log-debug',
+      TRACE: 'log-trace'
+    };
+    return classes[severity] || 'text-gray-400';
+  };
+
+  const formatTimestamp = (timestamp) => {
+    return new Date(timestamp).toLocaleTimeString();
+  };
+
+  if (loading && !stats) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-8 h-8 text-cyber-accent animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Viewer Dashboard</h2>
+          <p className="text-gray-400">Read-only monitoring view</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-cyber-info/10 text-cyber-info rounded-lg text-sm">
+            <Eye className="w-4 h-4" />
+            <span>Read-Only Mode</span>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="btn btn-outline flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Read-Only Notice */}
+      <div className="card p-4 bg-cyber-info/5 border-cyber-info/20">
+        <div className="flex items-center gap-3">
+          <Lock className="w-5 h-5 text-cyber-info" />
+          <div>
+            <p className="text-white font-medium">View-Only Access</p>
+            <p className="text-sm text-gray-400">
+              You have read-only access. You can view logs, anomalies, alerts, and metrics but cannot modify any data.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="card p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-sm">Total Logs</p>
+              <p className="text-2xl font-bold text-white">{stats?.totalLogs?.toLocaleString() || 0}</p>
+            </div>
+            <div className="w-12 h-12 bg-cyber-accent/10 rounded-lg flex items-center justify-center">
+              <FileText className="w-6 h-6 text-cyber-accent" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-1 text-sm text-cyber-success">
+            <TrendingUp className="w-4 h-4" />
+            <span>{stats?.todayLogs || 0} today</span>
+          </div>
+        </div>
+
+        <div className="card p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-sm">Anomalies</p>
+              <p className="text-2xl font-bold text-white">{stats?.unresolvedAnomalies || 0}</p>
+            </div>
+            <div className="w-12 h-12 bg-cyber-danger/10 rounded-lg flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-cyber-danger" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-1 text-sm text-gray-400">
+            <Activity className="w-4 h-4" />
+            <span>{stats?.todayAnomalies || 0} detected today</span>
+          </div>
+        </div>
+
+        <div className="card p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-sm">Active Alerts</p>
+              <p className="text-2xl font-bold text-white">{stats?.activeAlerts || 0}</p>
+            </div>
+            <div className="w-12 h-12 bg-cyber-warning/10 rounded-lg flex items-center justify-center">
+              <Bell className="w-6 h-6 text-cyber-warning" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-1 text-sm text-cyber-danger">
+            <AlertTriangle className="w-4 h-4" />
+            <span>{stats?.criticalAlerts || 0} critical</span>
+          </div>
+        </div>
+
+        <div className="card p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-sm">Logs/Hour</p>
+              <p className="text-2xl font-bold text-white">{stats?.lastHourLogs || 0}</p>
+            </div>
+            <div className="w-12 h-12 bg-cyber-info/10 rounded-lg flex items-center justify-center">
+              <Clock className="w-6 h-6 text-cyber-info" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-1 text-sm text-gray-400">
+            <Activity className="w-4 h-4" />
+            <span>{stats?.lastHourAnomalies || 0} anomalies</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Logs Over Time */}
+        <div className="card p-4">
+          <h3 className="text-lg font-semibold text-white mb-4">Logs Over Time (24h)</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={logsByTime}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+              <XAxis dataKey="_id" stroke="#6b7280" fontSize={12} />
+              <YAxis stroke="#6b7280" fontSize={12} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#111827', border: '1px solid #1f2937' }}
+                labelStyle={{ color: '#e5e7eb' }}
+              />
+              <Line type="monotone" dataKey="count" stroke="#00ff88" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Logs by Severity */}
+        <div className="card p-4">
+          <h3 className="text-lg font-semibold text-white mb-4">Logs by Severity</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie
+                data={logsByLevel}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={70}
+                paddingAngle={5}
+                dataKey="count"
+                nameKey="_id"
+              >
+                {logsByLevel.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{ backgroundColor: '#111827', border: '1px solid #1f2937' }}
+              />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Anomalies by Type */}
+      <div className="card p-4">
+        <h3 className="text-lg font-semibold text-white mb-4">Anomalies by Type</h3>
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={anomaliesByType} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+            <XAxis type="number" stroke="#6b7280" fontSize={12} />
+            <YAxis dataKey="_id" type="category" stroke="#6b7280" fontSize={12} width={100} />
+            <Tooltip
+              contentStyle={{ backgroundColor: '#111827', border: '1px solid #1f2937' }}
+              labelStyle={{ color: '#e5e7eb' }}
+            />
+            <Bar dataKey="count" fill="#ff3366" radius={[0, 4, 4, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Logs */}
+        <div className="card">
+          <div className="p-4 border-b border-cyber-border">
+            <h3 className="text-lg font-semibold text-white">Recent Logs</h3>
+          </div>
+          <div className="divide-y divide-cyber-border max-h-64 overflow-y-auto">
+            {recentLogs.length === 0 ? (
+              <p className="p-4 text-gray-400 text-center">No logs yet</p>
+            ) : (
+              recentLogs.map((log, index) => (
+                <div key={log._id || index} className="p-3 hover:bg-cyber-border/30">
+                  <div className="flex items-start gap-3">
+                    <div className={`severity-indicator severity-${log.severity?.toLowerCase()}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-medium uppercase ${getSeverityClass(log.severity)}`}>
+                          {log.severity}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {formatTimestamp(log.timestamp)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-300 truncate mt-1">{log.message}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-500">{log.component}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Recent Anomalies */}
+        <div className="card">
+          <div className="p-4 border-b border-cyber-border">
+            <h3 className="text-lg font-semibold text-white">Recent Anomalies</h3>
+          </div>
+          <div className="divide-y divide-cyber-border max-h-64 overflow-y-auto">
+            {recentAnomalies.length === 0 ? (
+              <p className="p-4 text-gray-400 text-center">No anomalies detected</p>
+            ) : (
+              recentAnomalies.map((anomaly, index) => (
+                <div key={anomaly._id || index} className="p-3 hover:bg-cyber-border/30">
+                  <div className="flex items-start gap-3">
+                    <div className={`severity-indicator severity-${anomaly.severity}`} />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className={`badge badge-${anomaly.severity}`}>
+                          {anomaly.severity}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {formatTimestamp(anomaly.timestamp)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-white font-medium mt-1">{anomaly.title}</p>
+                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">{anomaly.description}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Active Alerts */}
+      {activeAlerts.length > 0 && (
+        <div className="card">
+          <div className="p-4 border-b border-cyber-border flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white">Active Alerts</h3>
+            <span className="badge badge-critical">{activeAlerts.length} Active</span>
+          </div>
+          <div className="divide-y divide-cyber-border">
+            {activeAlerts.slice(0, 5).map((alert) => (
+              <div key={alert._id} className="p-3 hover:bg-cyber-border/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Bell className="w-4 h-4 text-cyber-warning" />
+                    <div>
+                      <p className="text-sm text-white">{alert.title}</p>
+                      <p className="text-xs text-gray-400">{alert.message}</p>
+                    </div>
+                  </div>
+                  <span className={`badge badge-${alert.severity}`}>{alert.severity}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ViewerDashboard;
+

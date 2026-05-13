@@ -10,28 +10,49 @@ const Log = require('../models/Log');
 const Anomaly = require('../models/Anomaly');
 const Alert = require('../models/Alert');
 const User = require('../models/User');
+const SiemDatasetRecord = require('../models/SiemDatasetRecord');
 const logger = require('../utils/logger');
 
 // @route   GET /api/stats/dashboard
-// @desc    Get dashboard summary statistics
+// @desc    Get dashboard summary statistics including SIEM dataset
 // @access  Private
 router.get('/dashboard', protect, async (req, res) => {
   try {
-    // Get current stats
+    // Get current stats from core collections and SIEM dataset
     const [
       totalLogs,
       totalAnomalies,
       unresolvedAnomalies,
       totalAlerts,
       activeAlerts,
-      criticalAlerts
+      criticalAlerts,
+      siemTotal,
+      siemAnomalies,
+      siemBySeverity,
+      siemByClassification,
+      alertBySeverity
     ] = await Promise.all([
       Log.countDocuments(),
       Anomaly.countDocuments(),
       Anomaly.countDocuments({ isResolved: false }),
       Alert.countDocuments(),
       Alert.countDocuments({ status: { $ne: 'resolved' } }),
-      Alert.countDocuments({ severity: 'critical', status: { $ne: 'resolved' } })
+      Alert.countDocuments({ severity: 'critical', status: { $ne: 'resolved' } }),
+      SiemDatasetRecord.countDocuments(),
+      SiemDatasetRecord.countDocuments({ isAnomaly: true }),
+      SiemDatasetRecord.aggregate([
+        { $group: { _id: '$severity', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+      SiemDatasetRecord.aggregate([
+        { $group: { _id: '$classification', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+      Alert.aggregate([
+        { $match: { status: { $ne: 'resolved' } } },
+        { $group: { _id: '$severity', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ])
     ]);
 
     // Get today's stats
@@ -41,37 +62,130 @@ router.get('/dashboard', protect, async (req, res) => {
     const [
       todayLogs,
       todayAnomalies,
-      todayAlerts
+      todayAlerts,
+      todaySiemRecords
     ] = await Promise.all([
       Log.countDocuments({ timestamp: { $gte: today } }),
       Anomaly.countDocuments({ timestamp: { $gte: today } }),
-      Alert.countDocuments({ createdAt: { $gte: today } })
+      Alert.countDocuments({ createdAt: { $gte: today } }),
+      SiemDatasetRecord.countDocuments({ timestamp: { $gte: today } })
     ]);
 
     // Get last hour stats
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const [
       lastHourLogs,
-      lastHourAnomalies
+      lastHourAnomalies,
+      lastHourSiem
     ] = await Promise.all([
       Log.countDocuments({ timestamp: { $gte: oneHourAgo } }),
-      Anomaly.countDocuments({ timestamp: { $gte: oneHourAgo } })
+      Anomaly.countDocuments({ timestamp: { $gte: oneHourAgo } }),
+      SiemDatasetRecord.countDocuments({ timestamp: { $gte: oneHourAgo } })
     ]);
+
+    // Get logs over time (last 24 hours)
+    const logsOverTime = await Log.aggregate([
+      {
+        $match: {
+          timestamp: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%H:00', date: '$timestamp' } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Get anomalies by type for pie chart
+    const anomaliesByType = await Anomaly.aggregate([
+      {
+        $group: {
+          _id: '$type',
+          value: { $sum: 1 }
+        }
+      },
+      { $sort: { value: -1 } },
+      { $limit: 5 }
+    ]);
+
+    // Combine SIEM data with regular data
+    const combinedBySeverity = [];
+    const severityMap = {};
+
+    // Add SIEM severity data
+    siemBySeverity.forEach(item => {
+      const key = (item._id || 'unknown').toLowerCase();
+      if (!severityMap[key]) severityMap[key] = 0;
+      severityMap[key] += item.count;
+    });
+
+    // Add Alert severity data (threats)
+    alertBySeverity.forEach(item => {
+      const key = (item._id || 'unknown').toLowerCase();
+      if (!severityMap[key]) severityMap[key] = 0;
+      severityMap[key] += item.count;
+    });
+
+    // Convert to array format for chart
+    const severityOrder = ['critical', 'high', 'medium', 'low', 'unknown'];
+    severityOrder.forEach(severity => {
+      if (severityMap[severity]) {
+        combinedBySeverity.push({
+          name: severity,
+          value: severityMap[severity]
+        });
+      }
+    });
+
+    const combinedByClassification = siemByClassification.map(item => ({
+      name: item._id,
+      value: item.count
+    }));
+
+    const formattedLogsOverTime = logsOverTime.map(item => ({
+      time: item._id,
+      count: item.count
+    }));
+
+    const formattedAnomalies = anomaliesByType.map(item => ({
+      name: item._id || 'Unknown',
+      value: item.value
+    }));
 
     res.json({
       success: true,
       data: {
+        // Core collections
         totalLogs,
         totalAnomalies,
         unresolvedAnomalies,
         totalAlerts,
         activeAlerts,
         criticalAlerts,
+        // SIEM dataset stats
+        siemDatasetTotal: siemTotal,
+        siemAnomaliesCount: siemAnomalies,
+        combinedTotalLogs: totalLogs + siemTotal,
+        combinedTotalAnomalies: totalAnomalies + siemAnomalies,
+        // Today stats
         todayLogs,
         todayAnomalies,
         todayAlerts,
+        todaySiemRecords,
+        // Last hour stats
         lastHourLogs,
-        lastHourAnomalies
+        lastHourAnomalies,
+        lastHourSiem,
+        // Charts
+        logsOverTime: formattedLogsOverTime,
+        anomaliesByType: formattedAnomalies,
+        bySeverity: combinedBySeverity,
+        byClassification: combinedByClassification,
+        // Health status
+        systemHealth: 99.9
       }
     });
   } catch (error) {

@@ -6,7 +6,10 @@
 "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "seed": "node seed.js"
+  "seed": "node seed.js",
+  "import:siem": "node src/scripts/importSiemDataset.js",
+  "import:siem:reset": "node src/scripts/importSiemDataset.js darkknight25/Advanced_SIEM_Dataset true",
+  "import:siem:local": "node src/scripts/importSiemDataset.js ../advanced_siem_dataset.jsonl"
   },
   "dependencies": {
     "express": "^4.18.2",

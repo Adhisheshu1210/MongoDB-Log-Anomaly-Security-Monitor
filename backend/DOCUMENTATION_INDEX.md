@@ -8,6 +8,11 @@
    - Common operations
    - Quick troubleshooting
    - ~400 lines
+  - Includes OTP verification and reset examples
+
+### API Testing
+5. **[Postman OTP Collection](./postman/MongoDB-Log-Anomaly-Security-Monitor-OTP.postman_collection.json)**
+  - Importable Postman collection for register, verify, login, forgot password, and reset password
 
 ### For Complete System Understanding
 2. **[Complete RBAC Guide](./COMPLETE_RBAC_GUIDE.md)** 📖 MAIN DOCUMENTATION

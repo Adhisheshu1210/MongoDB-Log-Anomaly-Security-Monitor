@@ -253,6 +253,39 @@ curl -X POST /api/auth/login ...
 2. Use backup from `/api/settings/backup` endpoint
 3. Don't manually edit backup files
 
+### Issue: "Please verify your email address before signing in"
+**Cause**: New account has not completed OTP verification yet
+
+**Fix**:
+1. Check the email inbox for the verification code
+2. If needed, resend the code with:
+```bash
+curl -X POST /api/auth/send-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com"}'
+```
+3. Verify the code with:
+```bash
+curl -X POST /api/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","code":"123456"}'
+```
+
+### Issue: "Forgot password"
+**Fix**:
+1. Request a reset code:
+```bash
+curl -X POST /api/auth/forgot \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com"}'
+```
+2. Reset the password:
+```bash
+curl -X POST /api/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","code":"123456","password":"NewPass123"}'
+```
+
 ### Issue: "Failed to generate demo data"
 **Possible Causes**:
 1. Database not connected

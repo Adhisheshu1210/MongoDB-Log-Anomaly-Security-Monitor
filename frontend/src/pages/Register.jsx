@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { authAPI } from '../services/api';
 import { Activity, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -29,15 +30,17 @@ const Register = () => {
 
     setLoading(true);
 
-    const result = await register(username, email, password, role);
-    
-    if (result.success) {
-      toast.success('Account created successfully!');
-      navigate('/dashboard');
-    } else {
-      toast.error(result.message);
+    try {
+      // Call register endpoint directly to support OTP verification flows
+      const res = await authAPI.register({ username, email, password, role });
+      // Store email for OTP verification flow
+      sessionStorage.setItem('otpEmail', email);
+      toast.success('Account created. Verify your email with the code sent.');
+      navigate('/verify-otp');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Registration failed');
     }
-    
+
     setLoading(false);
   };
 
@@ -52,11 +55,15 @@ const Register = () => {
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-cyber-accent/10 rounded-full mb-4">
-            <Activity className="w-8 h-8 text-cyber-accent" />
-          </div>
-          <h1 className="text-3xl font-bold text-white">Create Account</h1>
-          <p className="text-gray-400 mt-2">Join MongoDB Log Monitor today</p>
+          <Link to="/" className="inline-flex flex-col items-center group">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-cyber-accent/10 rounded-full mb-4 border border-cyber-accent/30 shadow-[0_0_24px_rgba(0,255,136,0.12)] transition-transform group-hover:scale-105">
+              <Activity className="w-8 h-8 text-cyber-accent" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white group-hover:text-cyber-accent transition-colors">
+              MongoDB Log Anomaly & Security Monitor
+            </h1>
+          </Link>
+          <p className="text-gray-400 mt-2">Create your account and verify access with OTP</p>
         </div>
 
         {/* Register Form */}

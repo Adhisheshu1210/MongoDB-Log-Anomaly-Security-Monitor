@@ -1,0 +1,1 @@
+export { ServerError as default } from './NotFound';

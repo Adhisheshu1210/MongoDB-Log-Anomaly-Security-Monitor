@@ -23,6 +23,35 @@ const ROLES = {
 const PERMISSIONS = {
   // Log access
   'logs:read': ['admin', 'user', 'viewer'],
+
+  // Hugging Face SIEM dataset access
+  'siem-dataset:read': ['admin', 'user', 'viewer'],
+  'siem-dataset:import': ['admin'],
+  'siem-dataset:sync': ['admin'],
+
+  // Semantic Search
+  'search:read': ['admin', 'user', 'viewer'],
+  'search:index:manage': ['admin'],
+
+  // NLQ (Natural Language Query)
+  'nlq:translate': ['admin', 'user', 'viewer'],
+  'nlq:execute': ['admin', 'user'],
+
+  // Schema Assistant
+  'schema:analyze': ['admin', 'user'],
+  'schema:index:recommend': ['admin', 'user'],
+
+  // Migration Assistant
+  'migration:create': ['admin'],
+  'migration:read': ['admin', 'user'],
+  'migration:start': ['admin'],
+  'migration:rollback': ['admin'],
+
+  // Threat Intelligence (derived from existing security monitor)
+  'threat:read': ['admin', 'user', 'viewer'],
+  'threat:remediate-suggestions': ['admin', 'user'],
+
+
   'logs:filter': ['admin', 'user', 'viewer'],
   'logs:export': ['admin', 'user'],
 
@@ -113,8 +142,24 @@ const ROLE_CAPABILITIES = {
 // ============= RESOURCE PERMISSIONS =============
 
 const RESOURCE_PERMISSIONS = {
+  // AI platform resources (scaffolding)
+  '/api/search': {
+    POST: ['admin', 'user', 'viewer'],
+  },
+  '/api/nlq': {
+    POST: ['admin', 'user', 'viewer'],
+  },
+  '/api/schema': {
+    POST: ['admin', 'user'],
+  },
+  '/api/migration': {
+    POST: ['admin'],
+    GET: ['admin', 'user']
+  },
+  
   // Settings resources
   '/api/settings': {
+
     GET: ['admin', 'user', 'viewer'],
     POST: ['admin'],
     PUT: ['admin'],
@@ -142,6 +187,20 @@ const RESOURCE_PERMISSIONS = {
     GET: ['admin', 'user', 'viewer'],
     PUT: ['admin'],
     DELETE: ['admin']
+  },
+
+  // Hugging Face SIEM dataset resources
+  '/api/siem-dataset': {
+    GET: ['admin', 'user', 'viewer']
+  },
+  '/api/siem-dataset/import': {
+    POST: ['admin']
+  },
+  '/api/siem-dataset/sync': {
+    POST: ['admin']
+  },
+  '/api/siem-dataset/stats': {
+    GET: ['admin', 'user', 'viewer']
   },
 
   // Anomalies resources

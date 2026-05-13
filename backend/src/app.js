@@ -24,6 +24,12 @@ const healthRoutes = require('./routes/health');
 const systemRoutes = require('./routes/system');
 const usersRoutes = require('./routes/users');
 const demoRoutes = require('./routes/demo');
+const searchRoutes = require('./routes/search');
+const nlqRoutes = require('./routes/nlq');
+const schemaRoutes = require('./routes/schema');
+const migrationRoutes = require('./routes/migration');
+const siemDatasetRoutes = require('./routes/siemDataset');
+
 
 // Import WebSocket handler
 const { setupWebSocket } = require('./services/websocket');
@@ -34,6 +40,7 @@ const notificationService = require('./services/notification');
 const alertService = require('./services/alertService');
 const anomalyService = require('./services/anomalyService');
 const securityService = require('./services/securityService');
+const { importDataset, DEFAULT_DATASET } = require('./services/huggingFaceDatasetService');
 
 // Import error handler
 const errorHandler = require('./middleware/errorHandler');
@@ -78,8 +85,16 @@ app.use('/api/system', systemRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/demo', demoRoutes);
 
+// AI Platform endpoints (scaffolding)
+app.use('/api/search', searchRoutes);
+app.use('/api/nlq', nlqRoutes);
+app.use('/api/schema', schemaRoutes);
+app.use('/api/migration', migrationRoutes);
+app.use('/api/siem-dataset', siemDatasetRoutes);
+
 // Root endpoint
 app.get('/', (req, res) => {
+
   res.json({
     name: 'MongoDB Log Anomaly & Security Monitor API',
     version: '1.0.0',
@@ -136,6 +151,17 @@ const connectDB = async () => {
         logger.info(
           `Auto-seeded demo data (logs:${seedResult.logsGenerated}, anomalies:${seedResult.anomaliesGenerated}, alerts:${seedResult.alertsGenerated})`
         );
+      }
+    }
+
+    // Optional auto-import of Hugging Face SIEM dataset on startup.
+    if (process.env.AUTO_IMPORT_HF_DATASET === 'true') {
+      try {
+        const dataset = process.env.HF_SIEM_DATASET || DEFAULT_DATASET;
+        const summary = await importDataset({ dataset, reset: false });
+        logger.info(`Auto-imported HF dataset ${dataset} (imported:${summary.imported}, upserted:${summary.upserted})`);
+      } catch (importError) {
+        logger.error(`Auto-import dataset failed: ${importError.message}`);
       }
     }
   } catch (error) {

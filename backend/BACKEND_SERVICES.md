@@ -8,6 +8,38 @@ This document describes the complete backend implementation for the MongoDB Log 
 4. **Demo Data** - Automatic and manual demo data generation
 5. **Security** - Access control, audit logging, and security policies
 
+The authentication subsystem also supports email verification and password reset OTPs using SMTP credentials from environment variables.
+
+### Authentication OTP Flow
+
+**Environment Variables**:
+```bash
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+EMAIL_FROM=MongoDB Log Anomaly & Security Monitor <your-email@gmail.com>
+OTP_EXPIRE_MINUTES=10
+```
+
+**Endpoints**:
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/auth/register` | Public | Create user, mark `emailVerified=false`, send verification OTP |
+| POST | `/api/auth/send-otp` | Public | Resend verification OTP |
+| POST | `/api/auth/verify-otp` | Public | Verify email with OTP and issue JWT |
+| POST | `/api/auth/forgot` | Public | Send password reset OTP |
+| POST | `/api/auth/reset-password` | Public | Reset password with OTP |
+| POST | `/api/auth/login` | Public | Login only after email is verified |
+
+**Flow**:
+1. Registration creates the user with a hashed verification code.
+2. The verification code is emailed through Nodemailer.
+3. The user submits the OTP to `/api/auth/verify-otp`.
+4. Password reset uses `/api/auth/forgot` and `/api/auth/reset-password` with a separate hashed OTP.
+5. Login is blocked until `emailVerified` is true.
+
 ---
 
 ## 1. Alert Thresholds System

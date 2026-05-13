@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Activity, Mail, Lock, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getRoleHomePage, normalizeRole } from '../utils/permissions';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -15,27 +16,32 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
-    const result = await login(email, password);
-    
-    if (result.success) {
-      toast.success('Welcome back!');
-      // Use setTimeout to ensure user state is updated before navigation
-      setTimeout(() => {
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        const userRole = userData.role;
-        if (userRole === 'admin') {
-          navigate('/admin');
-        } else if (userRole === 'viewer') {
-          navigate('/viewer');
-        } else {
-          navigate('/user');
-        }
-      }, 100);
-    } else {
-      toast.error(result.message);
+    try {
+      const result = await login(email, password);
+
+      if (result.success) {
+        toast.success('Welcome back!');
+        // Use setTimeout to ensure user state is updated before navigation
+        setTimeout(() => {
+          const userData = JSON.parse(localStorage.getItem('user') || '{}');
+          const userRole = normalizeRole(userData.role || user?.role);
+          navigate(getRoleHomePage(userRole));
+        }, 100);
+      } else if (result.requiresVerification) {
+        // Redirect unverified users to OTP verification flow
+        toast('Please verify your email address — check your inbox');
+        try {
+          sessionStorage.setItem('otpEmail', email);
+        } catch (e) {}
+        navigate('/verify-otp');
+      } else {
+        toast.error(result.message || result.error || 'Login failed');
+      }
+    } catch (error) {
+      toast.error('Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -49,10 +55,14 @@ const Login = () => {
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-cyber-accent/10 rounded-full mb-4">
-            <Activity className="w-8 h-8 text-cyber-accent" />
-          </div>
-          <h1 className="text-3xl font-bold text-white">MongoDB Log Monitor</h1>
+          <Link to="/" className="inline-flex flex-col items-center group">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-cyber-accent/10 rounded-full mb-4 border border-cyber-accent/30 shadow-[0_0_24px_rgba(0,255,136,0.12)] transition-transform group-hover:scale-105">
+              <Activity className="w-8 h-8 text-cyber-accent" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white group-hover:text-cyber-accent transition-colors">
+              MongoDB Log Anomaly & Security Monitor
+            </h1>
+          </Link>
           <p className="text-gray-400 mt-2">Sign in to access your dashboard</p>
         </div>
 
@@ -109,7 +119,8 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <Link to="/forgot" className="text-cyber-accent hover:underline">Forgot password?</Link>
             <p className="text-gray-400">
               Don't have an account?{' '}
               <Link to="/register" className="text-cyber-accent hover:underline">

@@ -43,7 +43,7 @@ const sampleLogs = [
   { timestamp: new Date(Date.now() - 1600000), severity: 'WARNING', component: 'ACCESS', message: 'Insufficient permission for operation: drop collection', classification: 'unauthorized_access', isAnomaly: true, anomalyScore: 0.62 },
   { timestamp: new Date(Date.now() - 1500000), severity: 'INFO', component: 'COMMAND', message: 'command: aggregate { aggregate: "orders", pipeline: [] } duration: 567ms', classification: 'normal' },
   { timestamp: new Date(Date.now() - 1400000), severity: 'WARNING', component: 'STORAGE', message: 'CheckPoint delayed: still processing 500 operations', classification: 'slow_query', isAnomaly: true, anomalyScore: 0.58 },
-  { timestamp: new Date(Date.now() - 1300000), severity: 'ERROR', component: 'QUERY', message: 'PlanExecutor error during query execution', classification: 'performance', isAnomaly: true, anomalyScore: 0.71 },
+  { timestamp: new Date(Date.now() - 1300000), severity: 'ERROR', component: 'QUERY', message: 'PlanExecutor error during query execution', classification: 'unknown', isAnomaly: true, anomalyScore: 0.71 },
   { timestamp: new Date(Date.now() - 1200000), severity: 'INFO', component: 'REPL', message: 'Replica set primary: mongo-primary:27017', classification: 'normal' },
   { timestamp: new Date(Date.now() - 1100000), severity: 'INFO', component: 'NETWORK', message: 'new client connection from 192.168.1.50:54321', classification: 'normal' },
   { timestamp: new Date(Date.now() - 1000000), severity: 'ERROR', component: 'ACCESS', message: 'Authentication failed for user test@admin from 10.0.0.50', classification: 'auth_failure', isAnomaly: true, anomalyScore: 0.82 },
@@ -222,26 +222,24 @@ async function seed() {
     await Settings.initDefaults();
     logger.info('Initialized default settings');
     
-    // Create demo users
-    const hashedPassword = await bcrypt.hash('admin123', 10);
-    
+    // Create demo users (store plaintext here so Mongoose pre-save hashes once)
     const users = await User.create([
       {
         username: 'admin',
         email: 'admin@example.com',
-        password: hashedPassword,
+        password: 'admin123',
         role: 'admin'
       },
       {
         username: 'user',
         email: 'user@example.com',
-        password: hashedPassword,
+        password: 'admin123',
         role: 'user'
       },
       {
         username: 'viewer',
         email: 'viewer@example.com',
-        password: hashedPassword,
+        password: 'admin123',
         role: 'viewer'
       }
     ]);

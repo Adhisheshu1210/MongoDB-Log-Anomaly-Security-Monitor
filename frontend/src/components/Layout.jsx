@@ -30,28 +30,34 @@ const Layout = ({ children }) => {
   // Get role-specific navigation items
   const getNavItems = () => {
     const role = user?.role;
+
+    // Match AppRouter paths: /admin/*, /user/*, /viewer/*
+    const rolePrefix = role === 'admin' ? '/admin' : role === 'viewer' ? '/viewer' : '/user';
+
+
     const items = [
-      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }
+      {
+        path: `${rolePrefix}/dashboard`,
+        label: 'Dashboard',
+        icon: LayoutDashboard,
+      },
     ];
 
-    // Role-based dashboard redirects
-    if (role === 'admin') {
-      items.push({ path: '/admin', label: 'Admin Panel', icon: Shield });
-    } else if (role === 'user') {
-      items.push({ path: '/user', label: 'DevOps Dashboard', icon: Server });
-    } else if (role === 'viewer') {
-      items.push({ path: '/viewer', label: 'Viewer Dashboard', icon: Activity });
-    }
-
-    // Common navigation items
+    // Role-based navigation
     items.push(
-      { path: '/logs', label: 'Logs', icon: FileText },
-      { path: '/anomalies', label: 'Anomalies', icon: AlertTriangle },
-      { path: '/alerts', label: 'Alerts', icon: Bell }
+      { path: `${rolePrefix}/logs`, label: 'Logs', icon: FileText },
+      { path: `${rolePrefix}/anomalies`, label: 'Anomalies', icon: AlertTriangle },
+      { path: `${rolePrefix}/alerts`, label: 'Alerts', icon: Bell },
+      { path: `${rolePrefix}/settings`, label: 'Settings', icon: Settings }
     );
 
-    // Settings - visible to all but with different access
-    items.push({ path: '/settings', label: 'Settings', icon: Settings });
+    // Requested user-only pages
+    if (role === 'user') {
+      items.push(
+        { path: `${rolePrefix}/investigations`, label: 'Investigations', icon: Shield },
+        { path: `${rolePrefix}/ai-insights`, label: 'AI Insights', icon: Zap }
+      );
+    }
 
     return items;
   };

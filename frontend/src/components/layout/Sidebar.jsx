@@ -31,7 +31,11 @@ const Sidebar = ({ items = [], isOpen, onToggle }) => {
       {/* Menu Items */}
       <nav className="flex-1 overflow-y-auto p-4 space-y-2">
         {items.map((item) => {
-          const isActive = location.pathname === item.href;
+          const isActive =
+            location.pathname === item.href ||
+            location.pathname.startsWith(item.href + '/') ||
+            // handle trailing slashes and hash-based variants
+            location.pathname.replace(/\/$/, '') === item.href;
           const Icon = item.icon;
 
           return (

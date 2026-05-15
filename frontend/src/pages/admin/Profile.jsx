@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   User,
   Mail,
@@ -15,6 +16,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import useRBAC from '../../hooks/useRBAC';
+import AIInsights from '../user/AIInsights';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -211,6 +213,11 @@ const Profile = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* AI Insights Section */}
+      <div>
+        <AIInsights />
       </div>
     </div>
   );

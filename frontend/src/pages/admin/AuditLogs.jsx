@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { 
   History, 
   Search, 
@@ -11,22 +12,65 @@ import {
   AlertCircle,
   Clock,
   ArrowRight,
-  Database
+  Database,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  X,
+  Calendar,
+  TrendingDown,
+  TrendingUp
 } from 'lucide-react';
 import useRBAC from '../../hooks/useRBAC';
 
+import auditLogsService from '../../services/auditLogs.service';
+
 const AuditLogs = () => {
   const { can } = useRBAC();
+
   const canViewAuditLogs = can('view_audit_logs');
   const [filter, setFilter] = useState("ALL");
+  const [auditData, setAuditData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const auditData = [
-    { id: "AUD-991", user: "Nakka Srijith", role: "ADMIN", action: "MODEL_RETRAIN", target: "Sentinel-NLP-v4", time: "2026-05-13 16:20", status: "SUCCESS", ip: "10.0.4.122" },
-    { id: "AUD-990", user: "System", role: "SYSTEM", action: "AUTO_BLOCK", target: "IP: 192.168.4.1", time: "2026-05-13 15:45", status: "SUCCESS", ip: "Internal" },
-    { id: "AUD-989", user: "Admin_Test", role: "ADMIN", action: "PERMISSION_CHANGE", target: "Viewer_04 -> User", time: "2026-05-13 14:12", status: "FAILED", ip: "172.16.0.45" },
-    { id: "AUD-988", user: "Nakka Srijith", role: "ADMIN", action: "GLOBAL_SENSITIVITY", target: "72% -> 85%", time: "2026-05-13 12:30", status: "SUCCESS", ip: "10.0.4.122" },
-    { id: "AUD-987", user: "Security_Bot", role: "USER", action: "LOG_EXPORT", target: "Quarterly_Report_Q1", time: "2026-05-13 10:05", status: "SUCCESS", ip: "192.168.1.10" },
-  ];
+  useEffect(() => {
+    const fetchAuditLogs = async () => {
+      try {
+        setLoading(true);
+        const params = {
+          page: 1,
+          limit: 50
+        };
+
+        // Map filter values to API parameters
+        if (filter === "SECURITY") {
+          params.action = "PERMISSION_CHANGE,SECURITY_ALERT,AUTO_BLOCK";
+        } else if (filter === "USER") {
+          params.action = "USER_LOGIN,USER_LOGOUT,ROLE_CHANGE";
+        } else if (filter === "SYSTEM") {
+          params.action = "SYSTEM_RESTART,CONFIG_CHANGE,MODEL_RETRAIN";
+        }
+
+        const response = await auditLogsService.getAuditLogs(params);
+        // API response structure: { success, data: [...], pagination: {...} }
+        const logsArray = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        setAuditData(logsArray);
+        setError(null);
+      } catch (err) {
+        setError(err.message || 'Failed to fetch audit logs');
+        console.error('Error fetching audit logs:', err);
+        setAuditData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (canViewAuditLogs) {
+      fetchAuditLogs();
+    }
+  }, [filter, canViewAuditLogs]);
 
   const getStatusBadge = (status) => (
     <span className={`px-2 py-0.5 rounded text-[9px] font-black tracking-widest ${
@@ -35,7 +79,6 @@ const AuditLogs = () => {
       {status}
     </span>
   );
-
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto min-h-screen font-sans">
       
@@ -92,58 +135,80 @@ const AuditLogs = () => {
 
       {/* Main Audit Table */}
       <div className="bg-slate-950 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-md">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-900/50 border-b border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
-                <th className="px-6 py-5">Event ID</th>
-                <th className="px-6 py-5">Initiator</th>
-                <th className="px-6 py-5">Action Type</th>
-                <th className="px-6 py-5">Resource Target</th>
-                <th className="px-6 py-5">Origin IP</th>
-                <th className="px-6 py-5">Timestamp</th>
-                <th className="px-6 py-5">Result</th>
-              </tr>
-            </thead>
-            <tbody className="text-[11px] font-mono">
-              {auditData.map((log, i) => (
-                <motion.tr 
-                  key={log.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="border-b border-slate-800/50 hover:bg-indigo-500/5 group transition-colors"
-                >
-                  <td className="px-6 py-4 text-slate-500 font-bold">{log.id}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                        <User size={12} className="text-indigo-400" />
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 size={32} className="text-indigo-500 animate-spin" />
+              <p className="text-slate-400 text-sm font-mono">Loading audit logs...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-4">
+              <AlertCircle size={32} className="text-rose-500" />
+              <p className="text-rose-500 text-sm font-mono">{error}</p>
+            </div>
+          </div>
+        ) : auditData.length === 0 ? (
+          <div className="flex items-center justify-center py-20">
+            <p className="text-slate-400 text-sm font-mono">No audit logs found</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-900/50 border-b border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                  <th className="px-6 py-5">Event ID</th>
+                  <th className="px-6 py-5">Initiator</th>
+                  <th className="px-6 py-5">Action Type</th>
+                  <th className="px-6 py-5">Resource Target</th>
+                  <th className="px-6 py-5">Origin IP</th>
+                  <th className="px-6 py-5">Timestamp</th>
+                  <th className="px-6 py-5">Result</th>
+                </tr>
+              </thead>
+              <tbody className="text-[11px] font-mono">
+                {auditData.map((log, i) => (
+                  <motion.tr 
+                    key={log.id || log.auditId}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="border-b border-slate-800/50 hover:bg-indigo-500/5 group transition-colors"
+                  >
+                    <td className="px-6 py-4 text-slate-500 font-bold">{log.auditId || log.id}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                          <User size={12} className="text-indigo-400" />
+                        </div>
+                        <div>
+                          <p className="text-white font-bold">{log.user?.name || 'Unknown'}</p>
+                          <p className="text-[9px] text-slate-500 font-black uppercase">{log.user?.role || 'USER'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-white font-bold">{log.user}</p>
-                        <p className="text-[9px] text-slate-500 font-black uppercase">{log.role}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="flex items-center gap-2 text-indigo-300 font-bold uppercase italic">
-                      <Terminal size={12} /> {log.action}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-400">
-                    <span className="flex items-center gap-2 truncate max-w-[150px]">
-                      <ArrowRight size={10} className="text-slate-600" /> {log.target}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-500">{log.ip}</td>
-                  <td className="px-6 py-4 text-slate-400">{log.time}</td>
-                  <td className="px-6 py-4">{getStatusBadge(log.status)}</td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="flex items-center gap-2 text-indigo-300 font-bold uppercase italic">
+                        <Terminal size={12} /> {log.action}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-400">
+                      <span className="flex items-center gap-2 truncate max-w-[150px]">
+                        <ArrowRight size={10} className="text-slate-600" /> {log.resourceTarget || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-500">{log.ipAddress || 'Internal'}</td>
+                    <td className="px-6 py-4 text-slate-400">
+                      {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4">{getStatusBadge(log.status || 'SUCCESS')}</td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Pagination / Footer Info */}
         <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/10 border-t border-slate-800">

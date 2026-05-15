@@ -262,5 +262,7 @@ const importLocalJsonl = async ({ datasetPath, reset = false } = {}) => {
 
 module.exports = {
   importDataset,
+  importLocalJsonl,
+  fetchSplits,
   DEFAULT_DATASET
 };

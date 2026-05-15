@@ -37,6 +37,10 @@ export const changeUserRole = async (id, role) => {
   return api.put(`/users/${id}/role`, { role });
 };
 
+export const getAvailableRoles = async () => {
+  return api.get('/users/meta/roles');
+};
+
 export default {
   getUsers,
   getUserById,
@@ -46,4 +50,5 @@ export default {
   disableUser,
   enableUser,
   changeUserRole,
+  getAvailableRoles,
 };

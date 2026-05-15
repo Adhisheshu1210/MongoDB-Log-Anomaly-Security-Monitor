@@ -20,6 +20,8 @@ const alertRoutes = require('./routes/alerts');
 const statsRoutes = require('./routes/stats');
 const settingsRoutes = require('./routes/settings');
 const settingsManagementRoutes = require('./routes/settingsManagement');
+const auditLogsRoutes = require('./routes/auditLogs');
+const securityRoutes = require('./routes/security');
 const healthRoutes = require('./routes/health');
 const systemRoutes = require('./routes/system');
 const usersRoutes = require('./routes/users');
@@ -29,6 +31,10 @@ const nlqRoutes = require('./routes/nlq');
 const schemaRoutes = require('./routes/schema');
 const migrationRoutes = require('./routes/migration');
 const siemDatasetRoutes = require('./routes/siemDataset');
+const aiControlsRoutes = require('./routes/aiControls');
+const reportsRoutes = require('./routes/reports');
+const notificationsRoutes = require('./routes/notifications');
+const contactRoutes = require('./routes/contact');
 
 
 // Import WebSocket handler
@@ -41,6 +47,9 @@ const alertService = require('./services/alertService');
 const anomalyService = require('./services/anomalyService');
 const securityService = require('./services/securityService');
 const { importDataset, DEFAULT_DATASET } = require('./services/huggingFaceDatasetService');
+const aiControlService = require('./services/aiControlService');
+const reportScheduler = require('./services/reportScheduler');
+const notificationFeedService = require('./services/notificationFeedService');
 
 // Import error handler
 const errorHandler = require('./middleware/errorHandler');
@@ -71,6 +80,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Make io available to routes
 app.set('io', io);
+global.__APP_IO__ = io;
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -79,11 +89,14 @@ app.use('/api/anomalies', anomalyRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/settings', settingsRoutes);
-app.use('/api/settings-management', settingsManagementRoutes);
+app.use('/api/settings', settingsManagementRoutes);
+app.use('/api/audit-logs', auditLogsRoutes);
+app.use('/api/security', securityRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/demo', demoRoutes);
+app.use('/api/reports', reportsRoutes);
 
 // AI Platform endpoints (scaffolding)
 app.use('/api/search', searchRoutes);
@@ -91,6 +104,9 @@ app.use('/api/nlq', nlqRoutes);
 app.use('/api/schema', schemaRoutes);
 app.use('/api/migration', migrationRoutes);
 app.use('/api/siem-dataset', siemDatasetRoutes);
+app.use('/api/ai-controls', aiControlsRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -121,10 +137,14 @@ app.use((req, res) => {
 // Database connection
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.NODE_ENV === 'production' 
-      ? process.env.MONGODB_URI_DOCKER 
+    const mongoURI = process.env.NODE_ENV === 'production'
+      ? process.env.MONGODB_URI_DOCKER
       : process.env.MONGODB_URI;
-    
+
+    if (!mongoURI) {
+      throw new Error('MONGODB_URI is missing. Set MONGODB_URI (or MONGODB_URI_DOCKER in production)');
+    }
+
     await mongoose.connect(mongoURI);
     logger.info('MongoDB connected successfully');
 
@@ -137,6 +157,8 @@ const connectDB = async () => {
     await notificationService.initialize();
     await anomalyService.initialize();
     await securityService.initialize();
+    await aiControlService.initialize();
+    await notificationFeedService.syncLatestNotifications();
     logger.info('All services initialized');
 
     // In development, ensure the dashboard has realistic data without manual seeding.
@@ -163,6 +185,13 @@ const connectDB = async () => {
       } catch (importError) {
         logger.error(`Auto-import dataset failed: ${importError.message}`);
       }
+    }
+
+    // Start report scheduler
+    try {
+      reportScheduler.start();
+    } catch (err) {
+      logger.warn('Failed to start report scheduler', err.message);
     }
   } catch (error) {
     logger.error('MongoDB connection error:', error.message);

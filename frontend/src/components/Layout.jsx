@@ -34,10 +34,15 @@ const Layout = ({ children }) => {
     // Match AppRouter paths: /admin/*, /user/*, /viewer/*
     const rolePrefix = role === 'admin' ? '/admin' : role === 'viewer' ? '/viewer' : '/user';
 
+    // Sidebar uses *only* the leaf segments used by AppRouter:
+    // - /user/dashboard, /user/live-monitoring, etc.
+    // - NEVER use /user (as a base) or it may route to /user/dashboard incorrectly via redirects.
+
+    const effectiveRole = role === 'viewer' ? 'viewer' : role === 'admin' ? 'admin' : 'user';
 
     const items = [
       {
-        path: `${rolePrefix}/dashboard`,
+        path: `/${effectiveRole}/dashboard`,
         label: 'Dashboard',
         icon: LayoutDashboard,
       },
@@ -45,10 +50,11 @@ const Layout = ({ children }) => {
 
     // Role-based navigation
     items.push(
-      { path: `${rolePrefix}/logs`, label: 'Logs', icon: FileText },
-      { path: `${rolePrefix}/anomalies`, label: 'Anomalies', icon: AlertTriangle },
-      { path: `${rolePrefix}/alerts`, label: 'Alerts', icon: Bell },
-      { path: `${rolePrefix}/settings`, label: 'Settings', icon: Settings }
+      { path: `/${effectiveRole}/logs`, label: 'Logs', icon: FileText },
+      { path: `/${effectiveRole}/anomalies`, label: 'Anomalies', icon: AlertTriangle },
+      { path: `/${effectiveRole}/alerts`, label: 'Alerts', icon: Bell },
+      { path: `/${effectiveRole}/live-monitoring`, label: 'Live Monitoring', icon: Activity },
+      { path: `/${effectiveRole}/settings`, label: 'Settings', icon: Settings }
     );
 
     // Requested user-only pages

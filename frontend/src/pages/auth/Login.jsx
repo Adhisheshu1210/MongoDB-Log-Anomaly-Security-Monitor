@@ -25,7 +25,9 @@ const Login = () => {
         setTimeout(() => {
           const userData = JSON.parse(localStorage.getItem('user') || '{}');
           const userRole = normalizeRole(userData.role || user?.role);
-          navigate(getRoleHomePage(userRole));
+          const next = getRoleHomePage(userRole);
+          // Force a full page load so the app re-initializes with the latest auth state.
+          window.location.assign(next);
         }, 100);
       } else if (result.requiresVerification) {
         // Redirect unverified users to OTP verification flow

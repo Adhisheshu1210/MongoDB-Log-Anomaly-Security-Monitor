@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useSocket } from '../../context/SocketContext';
-import { statsAPI } from '../../services/api';
+import { statsAPI, siemDatasetAPI } from '../../services/api';
+
 import { normalizeRole } from '../../utils/permissions';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -103,7 +104,33 @@ const Dashboard = () => {
   const { socket } = useSocket();
   const { user } = useAuth();
   const currentRole = normalizeRole(user?.role);
+
+  // SIEM preview (SiemDatasetRecord)
+  const [siemPreviewLoading, setSiemPreviewLoading] = useState(true);
+  const [siemPreviewRecords, setSiemPreviewRecords] = useState([]);
+  const [siemPreviewError, setSiemPreviewError] = useState(null);
+
+  const fetchSiemPreview = useCallback(async () => {
+    setSiemPreviewLoading(true);
+    setSiemPreviewError(null);
+
+    try {
+      const res = await siemDatasetAPI.getAll({
+        page: 1,
+        limit: 10
+      });
+
+      setSiemPreviewRecords(res.data?.data || []);
+    } catch (e) {
+      setSiemPreviewError(e?.response?.data?.message || 'Failed to load SIEM dataset preview');
+    } finally {
+      setSiemPreviewLoading(false);
+    }
+  }, []);
+
   const [loading, setLoading] = useState(true);
+
+
   const [stats, setStats] = useState({
     totalLogs: 0,
     siemDatasetTotal: 0,
@@ -132,8 +159,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchStats();
+    fetchSiemPreview();
 
     if (socket) {
+
       socket.on('log:new', () => {
         setStats(prev => ({ ...prev, totalLogs: prev.totalLogs + 1 }));
       });
@@ -339,15 +368,84 @@ const Dashboard = () => {
                     return <Cell key={`cell-${index}`} fill={severityColors[entry.name] || neon.cyan} stroke="none" />;
                   })}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }} />
+                <Tooltip contentStyle={{ backgroundColor: '#ebedf3', border: '1px solid #334155', borderRadius: '8px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
       </div>
 
+      {/* SIEM Dataset Preview */}
+      <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800">
+        <div className="flex items-center justify-between mb-4 gap-4">
+          <div>
+            <h3 className="text-lg font-bold text-white">SIEM Dataset Preview</h3>
+            <p className="text-xs text-slate-500 mt-1">Fetched via <span className="font-mono text-slate-300">siemDatasetAPI.getAll</span> (role-shaped records)</p>
+          </div>
+          <div className="text-right">
+            {siemPreviewLoading ? (
+              <span className="text-[10px] text-slate-500 font-mono">Loading...</span>
+            ) : siemPreviewError ? (
+              <span className="text-[10px] text-rose-400 font-mono">{String(siemPreviewError)}</span>
+            ) : (
+              <span className="text-[10px] text-slate-500 font-mono">{siemPreviewRecords.length} rows</span>
+            )}
+          </div>
+        </div>
+
+        {siemPreviewLoading ? (
+          <div className="py-10 text-center text-slate-500 font-mono text-xs">Loading SIEM dataset records...</div>
+        ) : siemPreviewError ? (
+          <div className="py-6 text-center text-rose-400 font-mono text-xs">{String(siemPreviewError)}</div>
+        ) : siemPreviewRecords.length === 0 ? (
+          <div className="py-6 text-center text-slate-500 font-mono text-xs">No SIEM dataset records found.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-[720px] w-full text-left">
+              <thead className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <tr>
+                  <th className="pb-3 pr-4">Row</th>
+                  <th className="pb-3 pr-4">Timestamp</th>
+                  <th className="pb-3 pr-4">Severity</th>
+                  <th className="pb-3 pr-4">Classification</th>
+                  <th className="pb-3 pr-4">Anomaly</th>
+                  <th className="pb-3">Source</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm">
+                {siemPreviewRecords.slice(0, 10).map((rec, idx) => (
+                  <tr key={rec.id || idx} className="border-t border-slate-800/60 hover:bg-slate-800/20 transition-colors">
+                    <td className="py-3 pr-4 font-mono text-xs text-slate-300">{rec.rowIdx ?? idx + 1}</td>
+                    <td className="py-3 pr-4 font-mono text-xs text-slate-300">
+                      {rec.timestamp ? new Date(rec.timestamp).toLocaleString() : '-'}
+                    </td>
+                    <td className="py-3 pr-4">
+                      <span className="text-[11px] px-2 py-1 rounded-full bg-slate-950 border border-slate-800 text-slate-200">
+                        {rec.severity || '-'}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4 text-slate-200 text-xs">{rec.classification || '-'}</td>
+                    <td className="py-3 pr-4">
+                      <span
+                        className={`text-[11px] px-2 py-1 rounded-full border ${
+                          rec.isAnomaly ? 'border-rose-500/30 bg-rose-500/10 text-rose-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                        }`}
+                      >
+                        {rec.isAnomaly ? 'Yes' : 'No'}
+                      </span>
+                    </td>
+                    <td className="py-3 text-slate-200 text-xs">{rec.source || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Charts Display */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+
         {/* Throughput Chart */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.98 }}
@@ -406,7 +504,7 @@ const Dashboard = () => {
                     <Cell key={`cell-${index}`} fill={[neon.purple, neon.pink, neon.cyan, neon.amber][index % 4]} stroke="none" />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '8px' }} />
+                <Tooltip contentStyle={{ backgroundColor: '#e4e6ea', border: 'none', borderRadius: '8px' }} />
                 <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '20px' }} />
               </PieChart>
             </ResponsiveContainer>

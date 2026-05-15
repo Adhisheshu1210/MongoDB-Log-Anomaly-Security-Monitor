@@ -200,6 +200,11 @@ export const healthAPI = {
   getLive: () => api.get('/health/live')
 };
 
+// Contact API - used by public landing page contact form
+export const contactAPI = {
+  submit: (data) => api.post('/contact', data)
+};
+
 // Users API (Admin only)
 export const usersAPI = {
   getAll: (params) => api.get('/users', { params }),
@@ -217,6 +222,23 @@ export const siemDatasetAPI = {
   getStats: (params) => api.get('/siem-dataset/stats', { params }),
   importAll: (data) => api.post('/siem-dataset/import', data),
   syncToCore: (data) => api.post('/siem-dataset/sync', data)
+};
+
+// Notifications API
+export const notificationsAPI = {
+  list: (params) => api.get('/notifications', { params }),
+  stats: () => api.get('/notifications/stats'),
+  markRead: (id) => api.patch(`/notifications/${id}/read`),
+  markAllRead: () => api.patch('/notifications/read-all')
+};
+
+// AI Controls API
+export const aiAPI = {
+  getDashboard: () => api.get('/ai-controls'),
+  getMetrics: () => api.get('/ai-controls/metrics'),
+  getActivity: (params) => api.get('/ai-controls/activity', { params }),
+  updateSettings: (data) => api.put('/ai-controls/settings', data),
+  retrain: (data) => api.post('/ai-controls/retrain', data)
 };
 
 export default api;

@@ -8,6 +8,7 @@ const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 const Alert = require('../models/Alert');
 const logger = require('../utils/logger');
+const notificationFeedService = require('../services/notificationFeedService');
 
 // @route   GET /api/alerts
 // @desc    Get all alerts with filtering and pagination
@@ -301,6 +302,16 @@ router.post('/', protect, authorize('admin', 'user'), async (req, res) => {
       await notificationService.sendNotifications(alert);
     } catch (notifError) {
       logger.error('Notification error:', notifError.message);
+    }
+
+    try {
+      const notification = await notificationFeedService.createAlertNotification(alert, 'alert');
+      if (notification) {
+        const io = req.app.get('io');
+        io?.emit('notification:new', notification);
+      }
+    } catch (feedError) {
+      logger.error('In-app notification error:', feedError.message);
     }
 
     res.status(201).json({

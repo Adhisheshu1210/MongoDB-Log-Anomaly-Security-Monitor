@@ -51,6 +51,10 @@ const PERMISSIONS = {
   'threat:read': ['admin', 'user', 'viewer'],
   'threat:remediate-suggestions': ['admin', 'user'],
 
+  // Report generation and viewing
+  'generate_reports': ['admin'],
+  'report:view': ['admin', 'user', 'viewer'],
+
 
   'logs:filter': ['admin', 'user', 'viewer'],
   'logs:export': ['admin', 'user'],
@@ -70,6 +74,9 @@ const PERMISSIONS = {
   'settings:write': ['admin'],
   'settings:backup': ['admin'],
   'settings:restore': ['admin'],
+
+  // AI controls access
+  'manage_ai_settings': ['admin'],
 
   // Configuration access
   'config:alerts': ['admin'],
@@ -201,6 +208,41 @@ const RESOURCE_PERMISSIONS = {
   },
   '/api/siem-dataset/stats': {
     GET: ['admin', 'user', 'viewer']
+  },
+
+  // AI controls resources
+  '/api/ai-controls': {
+    GET: ['admin']
+  },
+  '/api/ai-controls/settings': {
+    PUT: ['admin']
+  },
+  '/api/ai-controls/retrain': {
+    POST: ['admin']
+  },
+  '/api/ai-controls/metrics': {
+    GET: ['admin']
+  },
+  '/api/ai-controls/activity': {
+    GET: ['admin']
+  },
+
+  // Reports resources
+  '/api/reports': {
+    GET: ['admin', 'user', 'viewer'],
+    POST: ['admin']
+  },
+  '/api/reports/summary': {
+    GET: ['admin', 'user', 'viewer']
+  },
+  '/api/reports/:reportId': {
+    GET: ['admin', 'user', 'viewer']
+  },
+  '/api/reports/:reportId/download': {
+    GET: ['admin', 'user', 'viewer']
+  },
+  '/api/reports/:reportId/schedule': {
+    POST: ['admin']
   },
 
   // Anomalies resources

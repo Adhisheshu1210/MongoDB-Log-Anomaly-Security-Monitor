@@ -11,6 +11,7 @@ const alertService = require('../services/alertService');
 const anomalyService = require('../services/anomalyService');
 const securityService = require('../services/securityService');
 const rbacService = require('../services/rbacService');
+const settingsService = require('../services/settingsService');
 const logger = require('../utils/logger');
 
 // ============= ALERT THRESHOLDS =============
@@ -400,6 +401,241 @@ router.post('/categories/security/password-validation', protect, async (req, res
   } catch (error) {
     logger.error('Password validation error:', error.message);
     res.status(500).json({ success: false, message: 'Error validating password' });
+  }
+});
+
+// ============= GENERAL SETTINGS =============
+
+/**
+ * @route   GET /api/settings/categories/general
+ * @desc    Get general system settings
+ * @access  Private
+ */
+router.get('/categories/general', protect, async (req, res) => {
+  try {
+    const settings = await settingsService.getGeneralSettings();
+    res.json({
+      success: true,
+      data: {
+        settings,
+        description: 'General system configuration and environment settings'
+      }
+    });
+  } catch (error) {
+    logger.error('Get general settings error:', error.message);
+    res.status(500).json({ success: false, message: 'Error fetching general settings' });
+  }
+});
+
+/**
+ * @route   PUT /api/settings/categories/general
+ * @desc    Update general settings
+ * @access  Private (Admin)
+ */
+router.put('/categories/general', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { systemDisplayName, primaryContactEmail, organizationName, timezone, language, environmentType } = req.body;
+
+    // Validate settings
+    const validation = await settingsService.validateSettings('general', {
+      systemDisplayName,
+      primaryContactEmail,
+      timezone
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({ success: false, message: 'Validation failed', errors: validation.errors });
+    }
+
+    const setting = await settingsService.updateGeneralSettings({
+      systemDisplayName,
+      primaryContactEmail,
+      organizationName,
+      timezone,
+      language,
+      environmentType
+    }, req.user._id);
+
+    await securityService.auditLog('UPDATE_GENERAL_SETTINGS', req.user._id, 'settings');
+
+    res.json({ success: true, data: setting });
+  } catch (error) {
+    logger.error('Update general settings error:', error.message);
+    res.status(500).json({ success: false, message: 'Error updating general settings' });
+  }
+});
+
+// ============= STORAGE SETTINGS =============
+
+/**
+ * @route   GET /api/settings/categories/storage
+ * @desc    Get log storage settings
+ * @access  Private
+ */
+router.get('/categories/storage', protect, async (req, res) => {
+  try {
+    const settings = await settingsService.getStorageSettings();
+    res.json({
+      success: true,
+      data: {
+        settings,
+        description: 'Configure log retention and archive policies'
+      }
+    });
+  } catch (error) {
+    logger.error('Get storage settings error:', error.message);
+    res.status(500).json({ success: false, message: 'Error fetching storage settings' });
+  }
+});
+
+/**
+ * @route   PUT /api/settings/categories/storage
+ * @desc    Update storage settings
+ * @access  Private (Admin)
+ */
+router.put('/categories/storage', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { hotStorageDays, coldStorageDays, maxDocuments, autoArchiveEnabled, archiveLocation, compressionEnabled } = req.body;
+
+    // Validate settings
+    const validation = await settingsService.validateSettings('storage', {
+      hotStorageDays: parseInt(hotStorageDays),
+      coldStorageDays: parseInt(coldStorageDays),
+      autoArchiveEnabled
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({ success: false, message: 'Validation failed', errors: validation.errors });
+    }
+
+    const setting = await settingsService.updateStorageSettings({
+      hotStorageDays: parseInt(hotStorageDays),
+      coldStorageDays: parseInt(coldStorageDays),
+      maxDocuments: parseInt(maxDocuments),
+      autoArchiveEnabled,
+      archiveLocation,
+      compressionEnabled
+    }, req.user._id);
+
+    await securityService.auditLog('UPDATE_STORAGE_SETTINGS', req.user._id, 'settings');
+
+    res.json({ success: true, data: setting });
+  } catch (error) {
+    logger.error('Update storage settings error:', error.message);
+    res.status(500).json({ success: false, message: 'Error updating storage settings' });
+  }
+});
+
+// ============= API & WEBHOOKS =============
+
+/**
+ * @route   GET /api/settings/categories/api-webhooks
+ * @desc    Get API and webhook settings
+ * @access  Private
+ */
+router.get('/categories/api-webhooks', protect, async (req, res) => {
+  try {
+    const settings = await settingsService.getApiWebhookSettings();
+    const apiKeys = await settingsService.getApiKeys();
+
+    res.json({
+      success: true,
+      data: {
+        settings,
+        apiKeys,
+        description: 'Configure API access and webhook integrations'
+      }
+    });
+  } catch (error) {
+    logger.error('Get API/Webhook settings error:', error.message);
+    res.status(500).json({ success: false, message: 'Error fetching API/Webhook settings' });
+  }
+});
+
+/**
+ * @route   PUT /api/settings/categories/api-webhooks
+ * @desc    Update API and webhook settings
+ * @access  Private (Admin)
+ */
+router.put('/categories/api-webhooks', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { apiKeysEnabled, rateLimit, webhooksEnabled, retryAttempts, webhookTimeout, ipWhitelistEnabled, ipWhitelist } = req.body;
+
+    // Validate settings
+    const validation = await settingsService.validateSettings('apiWebhook', {
+      rateLimit: parseInt(rateLimit),
+      webhookTimeout: parseInt(webhookTimeout),
+      retryAttempts: parseInt(retryAttempts)
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({ success: false, message: 'Validation failed', errors: validation.errors });
+    }
+
+    const setting = await settingsService.updateApiWebhookSettings({
+      apiKeysEnabled,
+      rateLimit: parseInt(rateLimit),
+      webhooksEnabled,
+      retryAttempts: parseInt(retryAttempts),
+      webhookTimeout: parseInt(webhookTimeout),
+      ipWhitelistEnabled,
+      ipWhitelist: ipWhitelist || []
+    }, req.user._id);
+
+    await securityService.auditLog('UPDATE_API_WEBHOOK_SETTINGS', req.user._id, 'settings');
+
+    res.json({ success: true, data: setting });
+  } catch (error) {
+    logger.error('Update API/Webhook settings error:', error.message);
+    res.status(500).json({ success: false, message: 'Error updating API/Webhook settings' });
+  }
+});
+
+/**
+ * @route   POST /api/settings/categories/api-webhooks/generate-key
+ * @desc    Generate new API key
+ * @access  Private (Admin)
+ */
+router.post('/categories/api-webhooks/generate-key', protect, authorize('admin'), async (req, res) => {
+  try {
+    const result = await settingsService.generateApiKey(req.user._id);
+
+    await securityService.auditLog('GENERATE_API_KEY', req.user._id, 'settings');
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    logger.error('Generate API key error:', error.message);
+    res.status(500).json({ success: false, message: 'Error generating API key' });
+  }
+});
+
+/**
+ * @route   POST /api/settings/categories/api-webhooks/revoke-key
+ * @desc    Revoke API key
+ * @access  Private (Admin)
+ */
+router.post('/categories/api-webhooks/revoke-key', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { keyId } = req.body;
+
+    if (!keyId) {
+      return res.status(400).json({ success: false, message: 'Key ID is required' });
+    }
+
+    const result = await settingsService.deactivateApiKey(keyId);
+
+    await securityService.auditLog('REVOKE_API_KEY', req.user._id, 'settings');
+
+    res.json({
+      success: true,
+      data: { message: 'API key revoked successfully' }
+    });
+  } catch (error) {
+    logger.error('Revoke API key error:', error.message);
+    res.status(500).json({ success: false, message: 'Error revoking API key' });
   }
 });
 

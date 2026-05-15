@@ -50,7 +50,7 @@ const Navbar = () => {
             <ShieldCheck size={24} className="text-white" />
           </div>
           <span className="text-lg font-bold tracking-tighter text-white hidden md:block">
-            MONGO<span className="text-indigo-400">SIEM</span>
+            MongoDB Log Anomaly <span className="text-indigo-400">& Security Monitor</span>
           </span>
         </Link>
 
@@ -107,16 +107,15 @@ const HeroSection = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <h1 className="text-5xl md:text-7xl font-extrabold text-white leading-[1.1] mb-6">
-            AI-Powered <br />
-            <span className="bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-              MongoDB Security
-            </span>
-          </h1>
-          <p className="text-lg text-slate-400 mb-10 max-w-xl leading-relaxed">
-            Realtime log analysis, anomaly detection, and operational monitoring. 
-            Designed for high-scale enterprise clusters with Kafka-driven intelligence.
-          </p>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight mb-4">
+              MongoDB Log Anomaly & Security Monitor
+            </h1>
+            <p className="text-lg text-slate-400 mb-6 max-w-xl leading-relaxed">
+              A real-time monitoring system that uses AI and NLP to automatically detect security threats, performance issues, and unusual behavior in MongoDB logs. Ingest logs in real time, analyze them for anomalies, and manage alerts through an interactive MERN dashboard.
+            </p>
+            <p className="text-sm text-slate-400 mb-6 max-w-xl">
+              Deployed with Docker and Kubernetes, leveraging message queues for scalable log processing. Built to reduce detection time, improve data integrity, and maintain high system availability.
+            </p>
           <div className="flex flex-wrap gap-4">
             <Link to="/register" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-lg flex items-center gap-2 transition-all shadow-xl shadow-indigo-600/20">
               Get Started <ChevronRight size={20} />
@@ -160,6 +159,41 @@ const HeroSection = () => {
     </section>
   );
 };
+
+const ProblemStatement = () => (
+  <section className="py-12 px-4">
+    <div className="max-w-5xl mx-auto bg-slate-900/30 border border-slate-800 rounded-2xl p-6">
+      <h3 className="text-2xl font-bold text-white mb-3">Statement</h3>
+      <p className="text-slate-400">Modern MongoDB deployments generate large volumes of operational logs. Manual log inspection is slow, error-prone, and does not scale. The system aims to provide automated, AI-driven detection of anomalies and security threats in MongoDB logs, with configurable alerts and an interactive dashboard for rapid response.</p>
+    </div>
+  </section>
+);
+
+const SolutionsList = () => (
+  <section id="solutions" className="py-12 px-4 bg-slate-950">
+    <div className="max-w-7xl mx-auto">
+      <SectionHeading badge="Solution" title="Expected Solutions" subtitle="Key capabilities provided by the MongoDB Log Anomaly & Security Monitor" />
+      <div className="grid md:grid-cols-2 gap-6">
+        {[
+          'Real-time Anomaly Detection: Automatically identifies unusual behavior, performance issues, and security threats in MongoDB logs as they occur.',
+          'AI/NLP-Powered Log Analysis: Uses AI and Natural Language Processing to interpret log messages, detect patterns, and classify critical events.',
+          'Interactive Web Dashboard: Visualize log trends, anomaly alerts, and system health metrics with role-based views.',
+          'Configurable Alert Notifications: Send automated alerts through multiple channels when anomalies are detected.',
+          'Scalable, Containerized Deployment: Message-queue backed processing, Docker and Kubernetes deployment manifests.'
+        ].map((s, i) => (
+          <GlassCard key={i} className="p-6">
+            <h4 className="text-white font-bold mb-2">{s.split(':')[0]}</h4>
+            <p className="text-slate-400 text-sm">{s.split(':').slice(1).join(':').trim()}</p>
+          </GlassCard>
+        ))}
+      </div>
+      <div className="mt-8 text-slate-400 text-sm">
+        <strong>Technologies & Tools:</strong> MongoDB, MERN (MongoDB, Express, React, Node), Python (scikit-learn, TensorFlow/PyTorch, NLTK/spaCy), Kafka or RabbitMQ, Docker, Kubernetes.
+        <div className="mt-2"><a className="text-indigo-400" href="https://www.mongodb.com/docs/atlas/architecture/current/monitoring-alerts/" target="_blank" rel="noreferrer">Reference: MongoDB Monitoring & Alerts</a></div>
+      </div>
+    </div>
+  </section>
+);
 
 const FeaturesGrid = () => {
   const features = [
@@ -304,13 +338,78 @@ const CTASection = () => (
   </section>
 );
 
+const ContactForm = () => {
+  const [name, setName] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [message, setMessage] = React.useState('');
+  const [sending, setSending] = React.useState(false);
+  const [successMessage, setSuccessMessage] = React.useState('');
+  const [errorMessage, setErrorMessage] = React.useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSuccessMessage('');
+    setErrorMessage('');
+
+    if (!name || !email || !message) {
+      setErrorMessage('Please complete all fields');
+      return;
+    }
+
+    try {
+      setSending(true);
+      const { contactAPI } = await import('../../services/api');
+      await contactAPI.submit({ name, email, message });
+      setName(''); setEmail(''); setMessage('');
+      setSuccessMessage('Message sent successfully. We will respond shortly.');
+    } catch (err) {
+      console.error(err);
+      setErrorMessage('Failed to submit message. Please try again later.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <section id="contact" className="py-20 px-4 bg-slate-900/10">
+      <div className="max-w-4xl mx-auto bg-slate-950/60 border border-slate-800 rounded-3xl p-8">
+        <div className="mb-6">
+          <h3 className="text-3xl font-bold text-white">Get in touch</h3>
+          <p className="text-slate-400">Questions or feedback? Send us a message and we'll reply promptly.</p>
+        </div>
+        {successMessage && (
+          <div className="mb-4 p-4 bg-emerald-600/10 border border-emerald-600/30 text-emerald-300 rounded-lg">
+            <strong className="block font-semibold">{successMessage}</strong>
+          </div>
+        )}
+        {errorMessage && (
+          <div className="mb-4 p-4 bg-red-600/10 border border-red-600/30 text-red-300 rounded-lg">
+            <strong className="block font-semibold">{errorMessage}</strong>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input aria-label="Full name" type="text" placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} className="col-span-1 md:col-span-1 bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500" />
+          <input aria-label="Email address" type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} className="col-span-1 md:col-span-1 bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500" />
+          <textarea aria-label="Message" placeholder="Message" value={message} onChange={e=>setMessage(e.target.value)} rows={6} className="col-span-1 md:col-span-2 bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-white outline-none resize-none focus:ring-2 focus:ring-indigo-500" />
+          <div className="col-span-1 md:col-span-2 flex justify-end">
+            <button type="submit" disabled={sending} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold disabled:opacity-60">
+              {sending ? 'Sending...' : 'Submit Message'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  );
+};
+
 const Footer = () => (
   <footer className="bg-slate-950 pt-20 pb-10 border-t border-slate-900 px-4">
     <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
       <div>
-        <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-6">
           <ShieldCheck className="text-indigo-500" />
-          <span className="text-xl font-bold text-white tracking-tighter uppercase">MongoSIEM</span>
+          <span className="text-xl font-bold text-white tracking-tighter">MongoDB Log Anomaly & Security Monitor</span>
         </div>
         <p className="text-slate-500 text-sm leading-relaxed">
           The next generation of MongoDB security. AI-powered log auditing, 
@@ -359,6 +458,8 @@ const LandingPage = () => {
       <Navbar />
       <main>
         <HeroSection />
+        <ProblemStatement />
+        <SolutionsList />
         <FeaturesGrid />
         
         {/* Visual Architecture Section */}
@@ -439,6 +540,7 @@ const LandingPage = () => {
         </section>
 
         <CTASection />
+        <ContactForm />
       </main>
       <Footer />
     </div>

@@ -28,10 +28,20 @@ export const getMetrics = async () => {
   return api.get('/stats/metrics');
 };
 
+export const getDashboard = async () => {
+  return api.get('/stats/dashboard');
+};
+
+export const getSiemDatasetStats = async () => {
+  return api.get('/siem-dataset/stats');
+};
+
 export default {
   getSummary,
   getHealth,
   getReport,
   downloadReport,
   getMetrics,
+  getDashboard,
+  getSiemDatasetStats,
 };

@@ -8,12 +8,11 @@ import {
   Bell,
   RefreshCw,
   BarChart3,
-  Gauge
+  Gauge,
+  Table2
 } from 'lucide-react';
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
   AreaChart,
   Area,
   XAxis,
@@ -24,7 +23,7 @@ import {
 } from 'recharts';
 import toast from 'react-hot-toast';
 import { useSocket } from '../../context/SocketContext';
-import { statsAPI, logsAPI, anomaliesAPI, alertsAPI } from '../../services/api';
+import { statsAPI, logsAPI, anomaliesAPI, alertsAPI, siemDatasetAPI } from '../../services/api';
 
 const neon = {
   cyan: '#00aaff',
@@ -52,6 +51,31 @@ const LiveMonitoring = () => {
     recentAlerts: 0,
     avgResponseTime: 0
   });
+
+  // SIEM preview (SiemDatasetRecord)
+  const [siemPreviewLoading, setSiemPreviewLoading] = useState(true);
+  const [siemPreviewError, setSiemPreviewError] = useState(null);
+  const [siemPreviewRecords, setSiemPreviewRecords] = useState([]);
+
+  const fetchSiemPreview = useCallback(async () => {
+    setSiemPreviewLoading(true);
+    setSiemPreviewError(null);
+
+    try {
+      // Use ALL fetched data on this page: fetch up to backend cap (500)
+      // and render all returned rows.
+      const res = await siemDatasetAPI.getAll({
+        page: 1,
+        limit: 500
+      });
+
+      setSiemPreviewRecords(res.data?.data || []);
+    } catch (e) {
+      setSiemPreviewError(e?.response?.data?.message || 'Failed to load SIEM dataset preview');
+    } finally {
+      setSiemPreviewLoading(false);
+    }
+  }, []);
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -95,9 +119,11 @@ const LiveMonitoring = () => {
 
   useEffect(() => {
     fetchMetrics();
+    fetchSiemPreview();
     const interval = setInterval(fetchMetrics, 5000);
     return () => clearInterval(interval);
-  }, [fetchMetrics]);
+  }, [fetchMetrics, fetchSiemPreview]);
+
 
   useEffect(() => {
     if (socket) {
@@ -298,6 +324,79 @@ const LiveMonitoring = () => {
           </ResponsiveContainer>
         </div>
       </motion.div>
+
+      {/* SIEM Dataset Preview */}
+      <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800">
+        <div className="flex items-center justify-between mb-4 gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Table2 className="w-5 h-5 text-indigo-400" />
+              <h3 className="text-lg font-bold text-white">SIEM Dataset Preview</h3>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Fetched via <span className="font-mono text-slate-300">siemDatasetAPI.getAll</span> (rendering ALL fetched rows)
+            </p>
+          </div>
+          <div className="text-right">
+            {siemPreviewLoading ? (
+              <span className="text-[10px] text-slate-500 font-mono">Loading...</span>
+            ) : siemPreviewError ? (
+              <span className="text-[10px] text-rose-400 font-mono">{String(siemPreviewError)}</span>
+            ) : (
+              <span className="text-[10px] text-slate-500 font-mono">{siemPreviewRecords.length} rows</span>
+            )}
+          </div>
+        </div>
+
+        {siemPreviewLoading ? (
+          <div className="py-10 text-center text-slate-500 font-mono text-xs">Loading SIEM dataset records...</div>
+        ) : siemPreviewError ? (
+          <div className="py-6 text-center text-rose-400 font-mono text-xs">{String(siemPreviewError)}</div>
+        ) : siemPreviewRecords.length === 0 ? (
+          <div className="py-6 text-center text-slate-500 font-mono text-xs">No SIEM dataset records found.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-[900px] w-full text-left">
+              <thead className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <tr>
+                  <th className="pb-3 pr-4">Row</th>
+                  <th className="pb-3 pr-4">Timestamp</th>
+                  <th className="pb-3 pr-4">Severity</th>
+                  <th className="pb-3 pr-4">Classification</th>
+                  <th className="pb-3 pr-4">Anomaly</th>
+                  <th className="pb-3 pr-4">Source</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm">
+                {siemPreviewRecords.map((rec, idx) => (
+                  <tr key={rec.id || idx} className="border-t border-slate-800/60 hover:bg-slate-800/20 transition-colors">
+                    <td className="py-3 pr-4 font-mono text-xs text-slate-300">{rec.rowIdx ?? idx + 1}</td>
+                    <td className="py-3 pr-4 font-mono text-xs text-slate-300">
+                      {rec.timestamp ? new Date(rec.timestamp).toLocaleString() : '-'}
+                    </td>
+                    <td className="py-3 pr-4">
+                      <span className="text-[11px] px-2 py-1 rounded-full bg-slate-950 border border-slate-800 text-slate-200">
+                        {rec.severity || '-'}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4 text-slate-200 text-xs">{rec.classification || '-'}</td>
+                    <td className="py-3 pr-4">
+                      <span
+                        className={`text-[11px] px-2 py-1 rounded-full border ${
+                          rec.isAnomaly ? 'border-rose-500/30 bg-rose-500/10 text-rose-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                        }`}
+                      >
+                        {rec.isAnomaly ? 'Yes' : 'No'}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4 text-slate-200 text-xs">{rec.source || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* Status Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

@@ -12,7 +12,6 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-
 const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -27,8 +26,7 @@ const Profile = () => {
 
     return {
       name: user?.username || user?.name || 'User',
-      role:
-        role === 'admin' ? 'Administrator' : role === 'viewer' ? 'Viewer' : 'User',
+      role: role === 'admin' ? 'Administrator' : role === 'viewer' ? 'Viewer' : 'User',
       email: user?.email || '',
       joined: user?.createdAt
         ? new Date(user.createdAt).toLocaleString(undefined, {
@@ -38,9 +36,24 @@ const Profile = () => {
         : '—',
       clearance: clearanceMap[role] || '—',
       stats: [
-        { label: 'Anomalies Resolved', value: '—', icon: Shield, color: 'text-emerald-400' },
-        { label: 'Systems Managed', value: '—', icon: Activity, color: 'text-indigo-400' },
-        { label: 'Certifications', value: '—', icon: Award, color: 'text-amber-400' }
+        { 
+          label: 'Anomalies Resolved', 
+          value: user?.anomaliesResolved !== undefined ? user.anomaliesResolved : 0, 
+          icon: Shield, 
+          color: 'text-emerald-400' 
+        },
+        { 
+          label: 'Systems Managed', 
+          value: user?.systemsManaged !== undefined ? user.systemsManaged : 0, 
+          icon: Activity, 
+          color: 'text-indigo-400' 
+        },
+        { 
+          label: 'Certifications', 
+          value: user?.certifications !== undefined ? user.certifications : 0, 
+          icon: Award, 
+          color: 'text-amber-400' 
+        }
       ]
     };
   }, [user]);
@@ -58,12 +71,6 @@ const Profile = () => {
             className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm"
           >
             Open Role Profile
-          </button>
-          <button
-            onClick={() => navigate('/settings')}
-            className="px-3 py-2 border border-slate-700 text-slate-200 rounded-lg text-sm"
-          >
-            Settings
           </button>
         </div>
       </header>

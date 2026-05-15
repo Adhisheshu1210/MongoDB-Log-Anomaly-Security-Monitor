@@ -8,11 +8,32 @@ const router = express.Router();
 const logger = require('../utils/logger');
 const { protect, checkPermission, authorize } = require('../middleware/auth');
 const SiemDatasetRecord = require('../models/SiemDatasetRecord');
-const { importDataset, DEFAULT_DATASET } = require('../services/huggingFaceDatasetService');
+const { importDataset, DEFAULT_DATASET, fetchSplits } = require('../services/huggingFaceDatasetService');
+const fs = require('fs');
+const path = require('path');
+let multer;
 const { sanitizeByRole } = require('../services/roleDataSanitizer');
 const { syncDatasetToCore } = require('../services/siemDatasetSyncService');
 
 logger.info('SIEM dataset routes module loaded');
+
+// Try to load multer if available (dev dependency may be optional)
+try { multer = require('multer'); } catch (e) { logger.warn('multer not installed; upload endpoint disabled'); }
+
+// Prepare upload directory
+const UPLOAD_DIR = process.env.SIEM_UPLOAD_DIR || path.join(__dirname, '../../uploads');
+if (!fs.existsSync(UPLOAD_DIR)) {
+  try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) { logger.warn(`Failed to create upload dir: ${e.message}`); }
+}
+
+let upload = null;
+if (multer) {
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+  });
+  upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
+}
 
 // @route   POST /api/siem-dataset/import
 // @desc    Import all rows from Hugging Face SIEM dataset into MongoDB
@@ -43,6 +64,46 @@ router.post('/import', protect, authorize('admin'), async (req, res) => {
       message: 'Failed to import Hugging Face dataset',
       error: error.message
     });
+  }
+});
+
+// @route   POST /api/siem-dataset/upload
+// @desc    Upload a local JSONL dataset file and import it
+// @access  Private (Admin only)
+if (upload) {
+  router.post('/upload', protect, authorize('admin'), upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+
+      const datasetPath = req.file.path;
+      const reset = req.body.reset === 'true' || req.body.reset === true;
+
+      const summary = await importDataset({ dataset: datasetPath, reset });
+
+      return res.json({ success: true, message: 'Uploaded dataset imported', data: { file: req.file.originalname, summary } });
+    } catch (error) {
+      logger.error(`Upload import error: ${error.message}`);
+      return res.status(500).json({ success: false, message: 'Failed to import uploaded dataset', error: error.message });
+    }
+  });
+} else {
+  logger.info('Upload endpoint disabled because multer is not installed');
+}
+
+// @route   GET /api/siem-dataset/refresh
+// @desc    Refresh dataset metadata (splits and basic stats)
+// @access  Private
+router.get('/refresh', protect, checkPermission('siem-dataset:read'), async (req, res) => {
+  try {
+    const dataset = req.query.dataset || DEFAULT_DATASET;
+    const splits = await fetchSplits(dataset).catch((e) => { logger.warn(`fetchSplits failed: ${e.message}`); return []; });
+    const total = await SiemDatasetRecord.countDocuments({ dataset });
+    const latest = await SiemDatasetRecord.findOne({ dataset }).sort({ timestamp: -1 }).lean();
+
+    return res.json({ success: true, data: { dataset, splits, total, latestTimestamp: latest ? latest.timestamp : null } });
+  } catch (error) {
+    logger.error(`Dataset refresh error: ${error.message}`);
+    return res.status(500).json({ success: false, message: 'Failed to refresh dataset metadata', error: error.message });
   }
 });
 

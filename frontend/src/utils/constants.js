@@ -3,8 +3,8 @@
  * Centralized configuration for the MongoDB Log Anomaly & Security Monitor
  */
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5001';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
 // Roles
 export const ROLES = {
@@ -124,6 +124,7 @@ export const SOCKET_EVENTS = {
   ALERT_NEW: 'alert:new',
   ALERT_RESOLVED: 'alert:resolved',
   ALERT_ACKNOWLEDGED: 'alert:acknowledged',
+  NOTIFICATION_NEW: 'notification:new',
   SYSTEM_UPDATE: 'system:update',
   USER_ACTIVITY: 'user:activity',
   HEALTH_UPDATE: 'health:update',

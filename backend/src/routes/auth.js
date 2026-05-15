@@ -1,3 +1,4 @@
+// (Removed duplicate GET handlers before router initialization)
 /**
  * Authentication Routes
  * Handles user registration, login, and profile
@@ -11,6 +12,21 @@ const User = require('../models/User');
 const { generateToken, protect } = require('../middleware/auth');
 const authEmailService = require('../services/authEmailService');
 const logger = require('../utils/logger');
+
+// Explicitly handle GET requests to login and forgot endpoints with a clear error
+router.get('/login', (req, res) => {
+  res.status(405).json({
+    success: false,
+    message: 'Method Not Allowed. Use POST for this endpoint.'
+  });
+});
+
+router.get('/forgot', (req, res) => {
+  res.status(405).json({
+    success: false,
+    message: 'Method Not Allowed. Use POST for this endpoint.'
+  });
+});
 
 const OTP_LENGTH = 6;
 const DEFAULT_OTP_MINUTES = parseInt(process.env.OTP_EXPIRE_MINUTES || '10', 10);
@@ -223,8 +239,9 @@ router.post('/login', [
 
     // Find user with password
     const user = await User.findOne({ email: normalizedEmail }).select('+password');
-    
+
     if (!user) {
+      logger.info(`Login failed: No user found for email ${normalizedEmail}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -232,6 +249,7 @@ router.post('/login', [
     }
 
     if (user.emailVerified === false) {
+      logger.info(`Login failed: Email not verified for ${normalizedEmail}`);
       return res.status(401).json({
         success: false,
         message: 'Please verify your email address before signing in',
@@ -240,6 +258,7 @@ router.post('/login', [
     }
 
     if (!user.isActive) {
+      logger.info(`Login failed: Account disabled for ${normalizedEmail}`);
       return res.status(401).json({
         success: false,
         message: 'Account is disabled'
@@ -248,8 +267,9 @@ router.post('/login', [
 
     // Check password
     const isMatch = await user.comparePassword(password);
-    
+
     if (!isMatch) {
+      logger.info(`Login failed: Invalid password for ${normalizedEmail}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -263,6 +283,7 @@ router.post('/login', [
     // Generate token
     const token = generateToken(user._id);
 
+    logger.info(`Login success for ${normalizedEmail}`);
     res.json({
       success: true,
       data: {

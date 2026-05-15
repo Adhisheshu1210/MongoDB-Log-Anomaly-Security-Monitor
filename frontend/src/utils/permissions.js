@@ -106,6 +106,7 @@ export const getAccessiblePages = (userRole) => {
     ],
     [ROLES.USER]: [
       '/user/dashboard',
+      '/user/live-monitoring',
       '/user/datasets',
       '/user/logs',
       '/user/alerts',
